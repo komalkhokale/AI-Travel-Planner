@@ -1,9 +1,12 @@
 import Booking from "../models/Booking.js";
 import Package from "../models/Package.js";
+import sendEmail from "../utils/sendEmail.js";
+
+import Coupon from "../models/Coupon.js";
 
 export const createBooking = async (req, res) => {
   try {
-    const { packageId, travelDate, guests } = req.body;
+    const { packageId, travelDate, guests, couponCode } = req.body;
 
     const travelPackage = await Package.findById(packageId);
 
@@ -19,7 +22,30 @@ export const createBooking = async (req, res) => {
       });
     }
 
-    const totalPrice = travelPackage.price * guests;
+    let totalPrice = travelPackage.price * guests;
+
+    if (couponCode) {
+      const coupon = await Coupon.findOne({
+        code: couponCode.toUpperCase(),
+        active: true,
+      });
+
+      if (!coupon) {
+        return res.status(404).json({
+          message: "Invalid coupon",
+        });
+      }
+
+      if (new Date() > coupon.expiryDate) {
+        return res.status(400).json({
+          message: "Coupon expired",
+        });
+      }
+
+      const discount = (totalPrice * coupon.discountPercentage) / 100;
+
+      totalPrice -= discount;
+    }
 
     const booking = await Booking.create({
       user: req.user._id,
@@ -37,6 +63,24 @@ export const createBooking = async (req, res) => {
 
     await travelPackage.save();
 
+    await sendEmail(
+      req.user.email,
+      "Booking Confirmation",
+      `
+    <h2>Booking Confirmed</h2>
+
+    <p>Hello ${req.user.name},</p>
+
+    <p>Your booking for <b>${travelPackage.title}</b> has been created successfully.</p>
+
+    <p>Total Price: ₹${totalPrice}</p>
+
+    <p>Travel Date: ${travelDate}</p>
+
+    <h3>Thank you for booking with us ✈️</h3>
+  `,
+    );
+
     const populatedBooking = await Booking.findById(booking._id)
       .populate("user", "name email")
       .populate("travelPackage");
@@ -44,6 +88,50 @@ export const createBooking = async (req, res) => {
     res.status(201).json({
       message: "Booking created successfully",
       booking: populatedBooking,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+
+export const cancelBooking = async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id).populate(
+      "travelPackage",
+    );
+
+    if (!booking) {
+      return res.status(404).json({
+        message: "Booking not found",
+      });
+    }
+
+    if (booking.user.toString() !== req.user._id.toString()) {
+      return res.status(401).json({
+        message: "Not authorized",
+      });
+    }
+
+    if (booking.bookingStatus === "Cancelled") {
+      return res.status(400).json({
+        message: "Booking already cancelled",
+      });
+    }
+
+    booking.bookingStatus = "Cancelled";
+
+    booking.travelPackage.availableSeats += booking.guests;
+
+    booking.travelPackage.status = "Available";
+
+    await booking.travelPackage.save();
+
+    await booking.save();
+
+    res.status(200).json({
+      message: "Booking cancelled successfully",
     });
   } catch (error) {
     res.status(500).json({

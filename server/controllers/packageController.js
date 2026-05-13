@@ -2,7 +2,12 @@ import Package from "../models/Package.js";
 
 export const createPackage = async (req, res) => {
   try {
-    const newPackage = await Package.create(req.body);
+    const imageUrls = req.files.map((file) => file.path);
+
+    const newPackage = await Package.create({
+      ...req.body,
+      images: imageUrls,
+    });
 
     res.status(201).json({
       message: "Package created successfully",

@@ -12,9 +12,11 @@ import {
 import protect from "../middleware/authMiddleware.js";
 import admin from "../middleware/adminMiddleware.js";
 
+import upload from "../middleware/uploadMiddleware.js";
+
 const router = express.Router();
 
-router.post("/", protect, admin, createPackage);
+router.post("/", protect, admin, upload.array("images", 5), createPackage);
 
 router.get("/", getPackages);
 
