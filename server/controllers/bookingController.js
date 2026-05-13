@@ -4,11 +4,25 @@ import sendEmail from "../utils/sendEmail.js";
 import Activity from "../models/Activity.js";
 import Coupon from "../models/Coupon.js";
 
+import detectFraudulentBooking from "../utils/fraudDetection.js";
+
+import calculateDynamicPrice from "../utils/dynamicPricing.js";
+
 import Notification from "../models/Notification.js";
+
+
 
 export const createBooking = async (req, res) => {
   try {
     const { packageId, travelDate, guests, couponCode } = req.body;
+
+    const isFraudulent = await detectFraudulentBooking(req.user._id);
+
+    if (isFraudulent) {
+      return res.status(400).json({
+        message: "Suspicious booking activity detected",
+      });
+    }
 
     const travelPackage = await Package.findById(packageId);
 
@@ -24,7 +38,12 @@ export const createBooking = async (req, res) => {
       });
     }
 
-    let totalPrice = travelPackage.price * guests;
+    const dynamicPrice = calculateDynamicPrice(
+      travelPackage.price,
+      travelPackage.availableSeats,
+    );
+
+    let totalPrice = dynamicPrice * guests;
 
     if (couponCode) {
       const coupon = await Coupon.findOne({
@@ -98,6 +117,11 @@ export const createBooking = async (req, res) => {
     const populatedBooking = await Booking.findById(booking._id)
       .populate("user", "name email")
       .populate("travelPackage");
+
+    req.io.emit("newBooking", {
+      message: "New booking created",
+      booking,
+    });
 
     res.status(201).json({
       message: "Booking created successfully",

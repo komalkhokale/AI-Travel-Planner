@@ -10,12 +10,18 @@ export const getDashboardStats = async (req, res) => {
 
     const totalBookings = await Booking.countDocuments();
 
-    const bookings = await Booking.find();
+    const revenueData = await Booking.aggregate([
+      {
+        $group: {
+          _id: null,
+          totalRevenue: {
+            $sum: "$totalPrice",
+          },
+        },
+      },
+    ]);
 
-    const totalRevenue = bookings.reduce(
-      (acc, item) => acc + item.totalPrice,
-      0,
-    );
+    const totalRevenue = revenueData[0]?.totalRevenue || 0;
 
     res.status(200).json({
       totalUsers,

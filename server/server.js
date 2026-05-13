@@ -33,8 +33,15 @@ import notificationRoutes from "./routes/notificationRoutes.js";
 import activityRoutes from "./routes/activityRoutes.js";
 import itineraryRoutes from "./routes/itineraryRoutes.js";
 import otpRoutes from "./routes/otpRoutes.js";
+import recommendationRoutes from "./routes/recommendationRoutes.js";
 
+import trendingRoutes from "./routes/trendingRoutes.js";
 
+import "./cron/couponCron.js";
+import "./cron/bookingReminderCron.js";
+
+import groupTripRoutes from "./routes/groupTripRoutes.js";
+import groupChatRoutes from "./routes/groupChatRoutes.js";
 
 connectDB();
 
@@ -80,6 +87,13 @@ app.use("/api/itineraries", itineraryRoutes);
 
 app.use("/api/otp", otpRoutes);
 
+app.use("/api/recommendations", recommendationRoutes);
+
+app.use("/api/trending", trendingRoutes);
+
+app.use("/api/group-trips", groupTripRoutes);
+app.use("/api/group-chat", groupChatRoutes);
+
 app.get("/", (req, res) => {
   res.send("API Running...");
 });
@@ -94,10 +108,20 @@ const io = new Server(server, {
   },
 });
 
+app.use((req, res, next) => {
+  req.io = io;
+  next();
+});
+
 const onlineUsers = {};
 
 io.on("connection", (socket) => {
   console.log("User Connected:", socket.id);
+  socket.on("joinGroupTrip", (groupTripId) => {
+    socket.join(groupTripId);
+
+    console.log(`Joined Group Trip: ${groupTripId}`);
+  });
 
   socket.on("joinRoom", (userId) => {
     socket.join(userId);
@@ -117,6 +141,8 @@ io.on("connection", (socket) => {
     io.to(data.receiver).emit("typing", {
       sender: data.sender,
     });
+
+
   });
 
   socket.on("stopTyping", (data) => {

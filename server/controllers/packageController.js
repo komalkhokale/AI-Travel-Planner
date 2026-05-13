@@ -1,5 +1,6 @@
 import Package from "../models/Package.js";
 import redisClient from "../config/redis.js";
+import calculateDynamicPrice from "../utils/dynamicPricing.js";
 
 export const createPackage = async (req, res) => {
   try {
@@ -64,8 +65,14 @@ export const getPackages = async (req, res) => {
       .skip(pageSize * (page - 1))
       .sort({ createdAt: -1 });
 
+      const updatedPackages = packages.map((pkg) => ({
+        ...pkg._doc,
+
+        dynamicPrice: calculateDynamicPrice(pkg.price, pkg.availableSeats),
+      }));
+
     const responseData = {
-      packages,
+      packages: updatedPackages,
       page,
       pages: Math.ceil(count / pageSize),
       totalPackages: count,
