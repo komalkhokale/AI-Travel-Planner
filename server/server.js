@@ -5,9 +5,13 @@ dotenv.config();
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
 import "./config/cloudinary.js";
+import "./config/redis.js";
 
 import express from "express";
 import cors from "cors";
+
+import rateLimit from "express-rate-limit";
+import helmet from "helmet";
 
 import { createServer } from "http";
 import { Server } from "socket.io";
@@ -24,17 +28,38 @@ import couponRoutes from "./routes/couponRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
 
 import chatRoutes from "./routes/chatRoutes.js";
+import notificationRoutes from "./routes/notificationRoutes.js";
+
+import activityRoutes from "./routes/activityRoutes.js";
+import itineraryRoutes from "./routes/itineraryRoutes.js";
+import otpRoutes from "./routes/otpRoutes.js";
+
+
 
 connectDB();
 
 const app = express();
 
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: "Too many requests from this IP",
+});
+
 app.use(cors());
+
 app.use(express.json());
 
+app.use(helmet());
+
+app.use(limiter);
+
 app.use("/api/auth", authRoutes);
+
 app.use("/api/packages", packageRoutes);
+
 app.use("/api/bookings", bookingRoutes);
+
 app.use("/api/payments", paymentRoutes);
 
 app.use("/api/admin", adminRoutes);
@@ -46,6 +71,14 @@ app.use("/api/coupons", couponRoutes);
 app.use("/api/ai", aiRoutes);
 
 app.use("/api/chat", chatRoutes);
+
+app.use("/api/notifications", notificationRoutes);
+
+app.use("/api/activities", activityRoutes);
+
+app.use("/api/itineraries", itineraryRoutes);
+
+app.use("/api/otp", otpRoutes);
 
 app.get("/", (req, res) => {
   res.send("API Running...");
@@ -76,7 +109,7 @@ io.on("connection", (socket) => {
     console.log(`User joined room: ${userId}`);
   });
 
-  ssocket.on("sendMessage", (data) => {
+  socket.on("sendMessage", (data) => {
     io.to(data.receiver).emit("receiveMessage", data);
   });
 

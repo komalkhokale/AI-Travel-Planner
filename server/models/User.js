@@ -23,12 +23,28 @@ const userSchema = new mongoose.Schema(
       enum: ["user", "admin"],
       default: "user",
     },
+
     wishlist: [
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Package",
       },
     ],
+
+    otp: String,
+
+    otpExpiry: Date,
+
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+
+    resetOTP: String,
+
+    resetOTPExpiry: Date,
+
+    refreshToken: String,
   },
   {
     timestamps: true,

@@ -1,8 +1,10 @@
 import Booking from "../models/Booking.js";
 import Package from "../models/Package.js";
 import sendEmail from "../utils/sendEmail.js";
-
+import Activity from "../models/Activity.js";
 import Coupon from "../models/Coupon.js";
+
+import Notification from "../models/Notification.js";
 
 export const createBooking = async (req, res) => {
   try {
@@ -62,6 +64,18 @@ export const createBooking = async (req, res) => {
     }
 
     await travelPackage.save();
+
+    await Activity.create({
+      user: req.user._id,
+      action: "Booking Created",
+      details: `${req.user.name} booked ${travelPackage.title}`,
+    });
+
+    await Notification.create({
+      user: req.user._id,
+      title: "Booking Confirmed",
+      message: `Your booking for ${travelPackage.title} is confirmed`,
+    });
 
     await sendEmail(
       req.user.email,
@@ -129,6 +143,18 @@ export const cancelBooking = async (req, res) => {
     await booking.travelPackage.save();
 
     await booking.save();
+
+    await Activity.create({
+      user: req.user._id,
+      action: "Booking Cancelled",
+      details: `${req.user.name} cancelled booking for ${booking.travelPackage.title}`,
+    });
+
+    await Notification.create({
+      user: req.user._id,
+      title: "Booking Cancelled",
+      message: `Your booking for ${booking.travelPackage.title} was cancelled`,
+    });
 
     res.status(200).json({
       message: "Booking cancelled successfully",
