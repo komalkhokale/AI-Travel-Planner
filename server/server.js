@@ -45,6 +45,15 @@ import groupChatRoutes from "./routes/groupChatRoutes.js";
 
 import travelPostRoutes from "./routes/travelPostRoutes.js";
 
+import storyRoutes from "./routes/storyRoutes.js";
+import liveLocationRoutes from "./routes/liveLocationRoutes.js";
+
+import smartAssistantRoutes from "./routes/smartAssistantRoutes.js";
+
+import aiPlannerRoutes from "./routes/aiPlannerRoutes.js";
+
+import personalizedRecommendationRoutes from "./routes/personalizedRecommendationRoutes.js";
+
 connectDB();
 
 const app = express();
@@ -94,6 +103,8 @@ app.use("/api/coupons", couponRoutes);
 
 app.use("/api/ai", aiRoutes);
 
+app.use("/api/ai-planner", aiPlannerRoutes);
+
 app.use("/api/chat", chatRoutes);
 
 app.use("/api/notifications", notificationRoutes);
@@ -106,6 +117,8 @@ app.use("/api/otp", otpRoutes);
 
 app.use("/api/recommendations", recommendationRoutes);
 
+app.use("/api/personalized-recommendations", personalizedRecommendationRoutes);
+
 app.use("/api/trending", trendingRoutes);
 
 app.use("/api/group-trips", groupTripRoutes);
@@ -113,6 +126,13 @@ app.use("/api/group-trips", groupTripRoutes);
 app.use("/api/group-chat", groupChatRoutes);
 
 app.use("/api/feed", travelPostRoutes);
+
+app.use("/api/stories", storyRoutes);
+
+app.use("/api/live-location", liveLocationRoutes);
+
+app.use("/api/smart-assistant", smartAssistantRoutes);
+
 
 app.get("/", (req, res) => {
   res.send("API Running...");
