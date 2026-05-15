@@ -43,9 +43,26 @@ import "./cron/bookingReminderCron.js";
 import groupTripRoutes from "./routes/groupTripRoutes.js";
 import groupChatRoutes from "./routes/groupChatRoutes.js";
 
+import travelPostRoutes from "./routes/travelPostRoutes.js";
+
 connectDB();
 
 const app = express();
+
+const PORT = process.env.PORT || 5000;
+
+const server = createServer(app);
+
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+  },
+});
+
+app.use((req, res, next) => {
+  req.io = io;
+  next();
+});
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -92,31 +109,20 @@ app.use("/api/recommendations", recommendationRoutes);
 app.use("/api/trending", trendingRoutes);
 
 app.use("/api/group-trips", groupTripRoutes);
+
 app.use("/api/group-chat", groupChatRoutes);
+
+app.use("/api/feed", travelPostRoutes);
 
 app.get("/", (req, res) => {
   res.send("API Running...");
-});
-
-const PORT = process.env.PORT || 5000;
-
-const server = createServer(app);
-
-const io = new Server(server, {
-  cors: {
-    origin: "*",
-  },
-});
-
-app.use((req, res, next) => {
-  req.io = io;
-  next();
 });
 
 const onlineUsers = {};
 
 io.on("connection", (socket) => {
   console.log("User Connected:", socket.id);
+
   socket.on("joinGroupTrip", (groupTripId) => {
     socket.join(groupTripId);
 
@@ -141,8 +147,6 @@ io.on("connection", (socket) => {
     io.to(data.receiver).emit("typing", {
       sender: data.sender,
     });
-
-
   });
 
   socket.on("stopTyping", (data) => {
