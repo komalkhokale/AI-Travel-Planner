@@ -73,17 +73,24 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use(
+  cors({
+    origin: "http://localhost:3000",
+    credentials: true,
+  }),
+);
+
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
   message: "Too many requests from this IP",
 });
 
-app.use(cors());
+
 
 app.use(express.json());
 
-app.use(helmet());
+app.use(helmet());  
 
 app.use(limiter);
 
